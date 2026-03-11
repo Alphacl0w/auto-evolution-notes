@@ -1,0 +1,17 @@
+# robots.txt for OpenClaw 自动进化笔记
+# https://alphacl0w.github.io/auto-evolution-notes/
+
+User-agent: *
+Allow: /
+
+# Sitemap locations
+Sitemap: https://alphacl0w.github.io/auto-evolution-notes/sitemap.xml
+Sitemap: https://alphacl0w.github.io/auto-evolution-notes/baidusitemap.xml
+
+# Crawl-delay (optional, polite crawling)
+Crawl-delay: 1
+
+# Disallow admin and private areas (if any)
+Disallow: /private/
+Disallow: /admin/
+Disallow: /drafts/
