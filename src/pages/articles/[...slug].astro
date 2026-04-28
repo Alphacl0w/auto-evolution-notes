@@ -1,0 +1,65 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE } from '../../site';
+import { formatDate, postUrl, termUrl } from '../../utils';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const canonical = new URL(postUrl(post), SITE.url).toString();
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.pubDate.toISOString(),
+  dateModified: (post.data.updatedDate || post.data.pubDate).toISOString(),
+  author: {
+    '@type': 'Person',
+    name: SITE.author,
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: SITE.name,
+  },
+  mainEntityOfPage: canonical,
+  inLanguage: SITE.locale,
+  keywords: post.data.tags.join(', '),
+};
+---
+
+<BaseLayout
+  title={post.data.title}
+  description={post.data.description}
+  type="article"
+  publishedTime={post.data.pubDate}
+  modifiedTime={post.data.updatedDate || post.data.pubDate}
+  jsonLd={jsonLd}
+>
+  <article class="article">
+    <header class="article__header">
+      <p class="eyebrow">{post.data.category}</p>
+      <h1>{post.data.title}</h1>
+      <p>{post.data.description}</p>
+      <div class="article__meta">
+        <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+        <a href={termUrl('categories', post.data.category)}>{post.data.category}</a>
+        {post.data.oldUrl && <span>迁移自旧 Hexo 链接</span>}
+      </div>
+      <div class="tag-row">
+        {post.data.tags.map((tag) => <a href={termUrl('tags', tag)}>#{tag}</a>)}
+      </div>
+    </header>
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+</BaseLayout>

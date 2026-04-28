@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { collectTerms, getPublishedPosts } from '../../utils';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return collectTerms(posts, (post) => post.data.category).map(({ term }) => ({
+    params: { category: encodeURIComponent(term) },
+    props: { category: term, posts: posts.filter((post) => post.data.category === term) },
+  }));
+}
+
+const { category, posts } = Astro.props;
+---
+
+<BaseLayout title={`分类：${category}`} description={`${category} 分类下的文章。`}>
+  <section class="page-head">
+    <p class="eyebrow">Category</p>
+    <h1>{category}</h1>
+  </section>
+  <section class="post-list">
+    {posts.map((post) => <PostCard post={post} />)}
+  </section>
+</BaseLayout>

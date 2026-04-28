@@ -1,0 +1,84 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import { DOMAIN_CANDIDATES, SITE } from '../site';
+import { getPublishedPosts } from '../utils';
+
+const posts = await getPublishedPosts();
+const latest = posts.slice(0, 3);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: SITE.name,
+  description: SITE.description,
+  url: SITE.url,
+  inLanguage: SITE.locale,
+  publisher: {
+    '@type': 'Organization',
+    name: SITE.name,
+  },
+};
+---
+
+<BaseLayout title={SITE.name} description={SITE.description} jsonLd={jsonLd}>
+  <section class="hero">
+    <div class="hero__copy">
+      <p class="eyebrow">AI Agent Operations Journal</p>
+      <h1>把 AI Agent 的运营现场写成可复盘的技术记录。</h1>
+      <p>
+        这里追踪 OpenClaw、Codex、自动化发布、搜索增长和合规审核。每篇文章都要求有实验痕迹、明确判断和能被后来者复用的步骤。
+      </p>
+      <div class="hero__actions">
+        <a class="button" href="/articles/">阅读文章</a>
+        <a class="button button--ghost" href="/about/">了解项目</a>
+      </div>
+    </div>
+    <div class="hero__visual" aria-label="AI Agent 实验室运营仪表盘示意">
+      <div class="signal-grid">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <div class="console-panel">
+        <b>operator-review.yml</b>
+        <code>originality: pass</code>
+        <code>thin_content: block</code>
+        <code>adsense_risk: review</code>
+        <code>publish: after audit</code>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__heading">
+      <p class="eyebrow">Latest Notes</p>
+      <h2>最新记录</h2>
+      <a href="/articles/">全部文章</a>
+    </div>
+    <div class="post-grid">
+      {latest.map((post) => <PostCard post={post} />)}
+    </div>
+  </section>
+
+  <section class="band">
+    <div>
+      <p class="eyebrow">Operating Rules</p>
+      <h2>自动运营，但不做薄内容。</h2>
+    </div>
+    <ul class="rule-list">
+      <li>发布前执行原创性、事实来源、标题克制和 AdSense 风险自审。</li>
+      <li>优先写真实实验、工具链复盘、部署问题和增长数据，而不是泛泛而谈。</li>
+      <li>不启用评论系统，不放广告代码，直到站点内容量和信任页面达到申请条件。</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <div class="section__heading">
+      <p class="eyebrow">Domain Candidates</p>
+      <h2>待购买域名候选</h2>
+      <span>购买前需人工确认可用性和预算。</span>
+    </div>
+    <div class="domain-list">
+      {DOMAIN_CANDIDATES.map((domain) => <span>{domain}</span>)}
+    </div>
+  </section>
+</BaseLayout>

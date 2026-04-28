@@ -1,0 +1,16 @@
+---
+import { NAV_ITEMS, SITE } from '../site';
+---
+
+<header class="site-header">
+  <a class="brand" href="/" aria-label={`${SITE.name} 首页`}>
+    <span class="brand-mark">A</span>
+    <span>
+      <strong>{SITE.name}</strong>
+      <small>{SITE.tagline}</small>
+    </span>
+  </a>
+  <nav class="nav" aria-label="主导航">
+    {NAV_ITEMS.map((item) => <a href={item.href}>{item.label}</a>)}
+  </nav>
+</header>

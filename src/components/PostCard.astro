@@ -1,0 +1,22 @@
+---
+import type { Post } from '../utils';
+import { formatDate, postUrl, termUrl } from '../utils';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+---
+
+<article class="post-card">
+  <div class="post-card__meta">
+    <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+    <a href={termUrl('categories', post.data.category)}>{post.data.category}</a>
+  </div>
+  <h2><a href={postUrl(post)}>{post.data.title}</a></h2>
+  <p>{post.data.description}</p>
+  <div class="tag-row">
+    {post.data.tags.map((tag) => <a href={termUrl('tags', tag)}>#{tag}</a>)}
+  </div>
+</article>
