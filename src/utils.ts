@@ -3,7 +3,13 @@ import type { CollectionEntry } from 'astro:content';
 
 export type Post = CollectionEntry<'posts'>;
 
+const postModules = import.meta.glob('/src/content/posts/**/*.md');
+
 export async function getPublishedPosts() {
+  if (Object.keys(postModules).length === 0) {
+    return [];
+  }
+
   const posts = await getCollection('posts', ({ data }) => !data.draft);
   return posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
 }

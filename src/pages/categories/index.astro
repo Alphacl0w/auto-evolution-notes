@@ -6,13 +6,22 @@ const posts = await getPublishedPosts();
 const categories = collectTerms(posts, (post) => post.data.category);
 ---
 
-<BaseLayout title="分类" description="AI Agent 实验室的文章分类。">
+<BaseLayout title="分类" description="AI 记忆系统研究文章分类。">
   <section class="page-head">
     <p class="eyebrow">Categories</p>
     <h1>分类</h1>
-    <p>用主题线索组织长期运营内容。</p>
+    <p>用研究主题组织论文、源码和工程笔记。</p>
   </section>
   <div class="term-list">
-    {categories.map(({ term, count }) => <a href={termUrl('categories', term)}>{term}<span>{count}</span></a>)}
+    {
+      categories.length > 0 ? (
+        categories.map(({ term, count }) => <a href={termUrl('categories', term)}>{term}<span>{count}</span></a>)
+      ) : (
+        <div class="empty-state">
+          <h3>分类待建立。</h3>
+          <p>新的研究文章发布后，这里会按论文、源码、架构、评测等主题归档。</p>
+        </div>
+      )
+    }
   </div>
 </BaseLayout>

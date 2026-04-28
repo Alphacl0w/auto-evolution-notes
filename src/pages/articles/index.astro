@@ -6,13 +6,22 @@ import { getPublishedPosts } from '../../utils';
 const posts = await getPublishedPosts();
 ---
 
-<BaseLayout title="文章" description="AI Agent 实验室的全部文章、实验记录和运营复盘。">
+<BaseLayout title="文章" description="AI 记忆系统研究文章、论文解读、开源项目分析和工程优化笔记。">
   <section class="page-head">
     <p class="eyebrow">Archive</p>
     <h1>文章</h1>
-    <p>按发布时间倒序整理的实验、教程和运营记录。</p>
+    <p>按发布时间倒序整理的 AI 记忆系统研究笔记。</p>
   </section>
   <section class="post-list">
-    {posts.map((post) => <PostCard post={post} />)}
+    {
+      posts.length > 0 ? (
+        posts.map((post) => <PostCard post={post} />)
+      ) : (
+        <div class="empty-state">
+          <h3>暂无公开文章。</h3>
+          <p>新的文章会从论文、开源仓库和可复现实验中筛选，不为更新频率牺牲判断质量。</p>
+        </div>
+      )
+    }
   </section>
 </BaseLayout>

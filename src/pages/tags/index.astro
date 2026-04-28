@@ -6,13 +6,22 @@ const posts = await getPublishedPosts();
 const tags = collectTerms(posts, (post) => post.data.tags);
 ---
 
-<BaseLayout title="标签" description="AI Agent 实验室的文章标签索引。">
+<BaseLayout title="标签" description="AI 记忆系统研究文章标签索引。">
   <section class="page-head">
     <p class="eyebrow">Tags</p>
     <h1>标签</h1>
-    <p>快速定位工具、框架、部署和运营主题。</p>
+    <p>快速定位记忆机制、项目、论文和工程问题。</p>
   </section>
   <div class="term-list">
-    {tags.map(({ term, count }) => <a href={termUrl('tags', term)}>{term}<span>{count}</span></a>)}
+    {
+      tags.length > 0 ? (
+        tags.map(({ term, count }) => <a href={termUrl('tags', term)}>{term}<span>{count}</span></a>)
+      ) : (
+        <div class="empty-state">
+          <h3>标签待建立。</h3>
+          <p>新的研究文章发布后，这里会按 RAG、上下文压缩、遗忘策略、评测等标签归档。</p>
+        </div>
+      )
+    }
   </div>
 </BaseLayout>

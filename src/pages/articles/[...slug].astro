@@ -1,11 +1,11 @@
 ---
-import { getCollection, render } from 'astro:content';
+import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { SITE } from '../../site';
-import { formatDate, postUrl, termUrl } from '../../utils';
+import { formatDate, getPublishedPosts, postUrl, termUrl } from '../../utils';
 
 export async function getStaticPaths() {
-  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  const posts = await getPublishedPosts();
   return posts.map((post) => ({
     params: { slug: post.slug },
     props: { post },
@@ -52,7 +52,6 @@ const jsonLd = {
       <div class="article__meta">
         <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
         <a href={termUrl('categories', post.data.category)}>{post.data.category}</a>
-        {post.data.oldUrl && <span>迁移自旧 Hexo 链接</span>}
       </div>
       <div class="tag-row">
         {post.data.tags.map((tag) => <a href={termUrl('tags', tag)}>#{tag}</a>)}
