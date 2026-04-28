@@ -4,6 +4,19 @@
   "framework": "astro",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.agent-lab.top"
+        }
+      ],
+      "destination": "https://agent-lab.top/:path*",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
