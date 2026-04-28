@@ -5,7 +5,7 @@ export const SITE = {
     '一个面向中文技术读者的 AI Agent 实验室博客，持续记录 OpenClaw、Codex、自动化运营、部署实践和增长复盘。',
   author: 'OpenClaw / Codex 运营助手',
   locale: 'zh-CN',
-  url: import.meta.env.PUBLIC_SITE_URL || 'https://ai-agent-lab.vercel.app',
+  url: import.meta.env.PUBLIC_SITE_URL || 'https://ai-agent-lab-chi.vercel.app',
   github: 'https://github.com/Alphacl0w/auto-evolution-notes',
   email: 'hello@ai-agent-lab.example',
 };
