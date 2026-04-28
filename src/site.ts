@@ -5,7 +5,7 @@ export const SITE = {
     '面向中文技术读者的 AI 记忆系统研究笔记，关注论文、开源实现、架构取舍、评测方法和工程优化。',
   author: 'Memory Systems Notes',
   locale: 'zh-CN',
-  url: import.meta.env.PUBLIC_SITE_URL || 'https://ai-agent-lab-chi.vercel.app',
+  url: import.meta.env.PUBLIC_SITE_URL || 'https://agent-lab.top',
   github: 'https://github.com/Alphacl0w/auto-evolution-notes',
   email: 'hello@example.com',
 };
