@@ -10,6 +10,17 @@
       "has": [
         {
           "type": "host",
+          "value": "ai-agent-lab-chi.vercel.app"
+        }
+      ],
+      "destination": "https://agent-lab.top/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
           "value": "www.agent-lab.top"
         }
       ],

@@ -655,6 +655,28 @@ main {
   background: #e4ead7;
 }
 
+.mermaid-diagram {
+  overflow-x: auto;
+  margin: 34px 0;
+  padding: 22px;
+  border: 1px solid rgba(11, 18, 15, 0.12);
+  border-radius: 16px;
+  background: #fffdf7;
+}
+
+.mermaid-diagram svg {
+  display: block;
+  min-width: 680px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.mermaid-diagram--failed {
+  border-color: #7a3d2b;
+  background: #180f0b;
+}
+
 .site-footer {
   display: flex;
   align-items: flex-start;
