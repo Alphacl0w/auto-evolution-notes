@@ -2,6 +2,7 @@
 title: "Agent + CPG + LFP：怎样构建一个可验证的白盒扫描器"
 description: "本文把 Agent、Code Property Graph、最小不动点数据流分析、规则引擎和验证沙箱合成一个白盒扫描器方案：不是让大模型直接猜漏洞，而是让它围绕代码图、状态机、证据链和 PoC 验证来工作。"
 pubDate: 2026-05-18
+updatedDate: 2026-05-19
 track: "security"
 category: "网络安全"
 tags:
@@ -159,6 +160,297 @@ flowchart LR
 语言前端不一定要从零写。多语言场景可以从 Tree-sitter 起步，拿到稳定 AST 和增量解析；对 Java/Kotlin/Go/TypeScript 这类语言，能接编译器、Language Server 或 CodeQL database 时优先接，因为类型信息和构建系统信息会显著降低误报。
 
 CPG 存储也有多种选择。原型阶段可以用本地 SQLite/Postgres 存节点边表，配合内存索引；复杂查询可以接 Neo4j、OverflowDB 或自研列式边索引。不要一开始就迷恋图数据库，关键是节点 schema、边类型、查询 API 和证据可追溯。
+
+## 项目目标和边界
+
+如果把这套方案当成真实项目，而不是一篇概念文章，我会把目标写得更窄一点：
+
+> 构建一个面向授权代码库的白盒安全扫描器。它以 CPG 和 LFP 数据流分析为确定性证据底座，用 Agent 做项目语义理解、规则生成、路径解释、误报复核和修复建议，最终输出可审计、可复现、可回归的漏洞报告。
+
+第一版不追求“所有语言、所有漏洞、完全自动化”。第一版要证明三件事：
+
+1. 对真实仓库建立稳定代码图。
+2. 对少数高价值漏洞类型输出 source-to-sink 证据链。
+3. 让 Agent 增强扫描质量，而不是制造不可复核的判断。
+
+项目边界要写死：
+
+- **扫描对象**：本地仓库、企业内部 Git 仓库、明确授权的开源仓库。
+- **首发语言**：TypeScript/JavaScript，兼容 Node.js Web 服务。
+- **首发框架**：Express、Koa、NestJS 的入口识别；数据库层覆盖 pg、mysql2、Prisma、TypeORM 的常见危险调用。
+- **首发漏洞类型**：SQL 注入、命令注入、路径穿越、SSRF、鉴权缺失、硬编码密钥。
+- **输出形式**：SARIF、Markdown 报告、JSON API、可选 PR comment。
+- **不做的事**：不扫描未授权公网目标；不默认执行破坏性 payload；不把 Agent 输出直接当作漏洞结论；不承诺零误报。
+
+这个边界很重要。白盒扫描器最大的问题不是“想象力不够”，而是范围失控。范围一失控，规则库、图 schema、验证沙箱、报告质量和误报治理都会一起塌。
+
+## 产品形态
+
+我会把它设计成三个入口，而不是一个单体命令。
+
+第一是 CLI：
+
+```bash
+scanner init
+scanner index --repo . --commit HEAD
+scanner scan --rules rules/web-ts --format sarif,json
+scanner explain finding_01
+scanner validate finding_01 --sandbox docker
+```
+
+CLI 用来服务个人开发者、本地调试和 CI。它必须快、可缓存、可离线运行。CLI 的输出要稳定，不依赖前端服务。
+
+第二是服务端 API：
+
+```http
+POST /api/repositories
+POST /api/repositories/{repoId}/snapshots
+POST /api/scans
+GET  /api/scans/{scanId}
+GET  /api/findings/{findingId}
+POST /api/findings/{findingId}/validate
+POST /api/findings/{findingId}/suppress
+```
+
+API 用来做队列、历史扫描、团队协作、规则版本管理和仪表盘。它不应该参与底层分析逻辑，只负责调度和存储。
+
+第三是 Git 集成：
+
+- Push 后触发增量扫描。
+- PR 只扫描 diff 影响面，同时回查全局可达路径。
+- 严重 finding 以 review comment 形式贴到对应行。
+- SARIF 上传到 GitHub Code Scanning。
+- 修复后自动跑回归验证。
+
+这样三种形态对应三类用户：研究者用 CLI，团队用 API，工程流用 Git 集成。
+
+## 分层模块契约
+
+每一层都要有清晰输入输出，否则 Agent 加进来后会变成一团不可调试的流程。
+
+| 模块 | 输入 | 输出 | 不允许做什么 |
+|---|---|---|---|
+| Repository Indexer | repo URL、本地路径、commit | 文件清单、语言清单、依赖图、lockfile 信息 | 不做漏洞判断 |
+| Parser Adapter | 文件内容、语言配置 | 统一 AST 节点、符号、基础类型 | 不跨文件猜调用 |
+| Graph Builder | AST、符号、依赖图 | CPG 节点边、调用边、数据流边 | 不做风险评分 |
+| LFP Solver | 初始 facts、transfer rules、图索引 | taint facts、reachability facts、函数摘要 | 不生成自然语言报告 |
+| Rule Engine | 规则 DSL、CPG、facts | candidate findings | 不调用模型 |
+| Agent Orchestrator | finding、证据、项目上下文 | 解释、规则建议、验证计划、修复建议 | 不直接确认漏洞 |
+| Sandbox Validator | 验证计划、测试环境 | validation artifact、复现结果 | 不访问真实生产凭据 |
+| Report Builder | finding、证据、验证结果 | SARIF、Markdown、JSON | 不隐藏不确定性 |
+
+最关键的是 `Rule Engine` 和 `Agent Orchestrator` 的边界。规则命中必须来自确定性执行；Agent 只能补充语义、解释和验证计划。这样后续即使换模型，也不会影响核心扫描结果的可复现性。
+
+## 数据流：从 commit 到报告
+
+更细的执行流可以拆成九步：
+
+1. **锁定快照**：记录 repo、branch、commit、依赖锁文件 hash、扫描配置 hash。
+2. **文件分层**：跳过 build output、vendor、minified、generated 文件；识别入口目录、测试目录、迁移脚本。
+3. **解析与符号收集**：生成 AST，抽取函数、类、import/export、路由声明、middleware、ORM 调用。
+4. **构建 CPG**：写入 AST/CFG/DFG/CALLS/IMPORTS/TYPE_OF 等边。
+5. **项目语义挖掘**：Agent 只读少量代表性文件，提出 source/sink/sanitizer/guard 候选。
+6. **规则执行**：规则引擎把候选合并到规则上下文，运行 pattern 和 taint 查询。
+7. **固定点求解**：跨函数传播污点和状态，输出带 provenance 的 facts。
+8. **候选复核**：Agent 查看路径证据，判断是否存在明显 sanitizer、不可达条件或缺失上下文。
+9. **验证与报告**：可验证的 finding 进入沙箱；不可安全验证的 finding 输出强/弱证据分级。
+
+这里有一个容易忽略的点：Agent 不应该在第 5 步读取整个仓库。它应该由 indexer 先给出“代表性样本”：入口文件、鉴权中间件、数据库封装、路由聚合、配置文件、已有安全测试。这样它的上下文更干净，也更容易产出项目语义规则。
+
+## 规则 DSL 草案
+
+规则必须可版本化、可审查、可禁用、可回归。下面是一个偏 Semgrep/CodeQL 之间的 YAML DSL 草案：
+
+```yaml
+id: ts.sql-injection.raw-query
+title: Raw SQL receives user-controlled input
+severity: high
+language: typescript
+track: taint
+
+sources:
+  - kind: framework_param
+    frameworks: [express, koa, nestjs]
+    selectors:
+      - req.query.*
+      - req.body.*
+      - ctx.request.query.*
+      - param.decorator.Query
+
+sinks:
+  - kind: call
+    symbols:
+      - pg.Client.query
+      - mysql.Connection.query
+      - prisma.$queryRawUnsafe
+      - dataSource.query
+    tainted_argument: [0]
+
+sanitizers:
+  - kind: call
+    symbols:
+      - sql-template-tag.sql
+      - z.enum.parse
+      - allowlist.map
+    removes_labels: [sql]
+
+propagation:
+  labels: [user_input, sql]
+  field_sensitive: false
+  max_call_depth: 8
+  max_path_count: 20
+
+evidence:
+  require_source: true
+  require_sink: true
+  require_path: true
+
+agent_review:
+  enabled: true
+  questions:
+    - Is the sink actually parameterized?
+    - Is there an allowlist sanitizer on every path?
+    - Is this route externally reachable?
+```
+
+第一版 DSL 不要太强。最重要的是表达四类东西：source、sink、sanitizer、propagation budget。复杂的业务语义可以放到插件里，不要全塞进 YAML。
+
+## CPG 节点和边的最小 schema
+
+第一版的节点种类可以控制在二十个以内：
+
+```text
+Project, File, Module, ImportDecl, ExportDecl
+FunctionDecl, MethodDecl, ClassDecl, Param, Return
+CallExpr, MemberExpr, Identifier, Literal, Assignment
+IfStmt, LoopStmt, AwaitExpr, ObjectExpr, RouteDecl
+```
+
+边类型也先收敛：
+
+```text
+AST_CHILD
+CFG_NEXT
+DFG_READS
+DFG_WRITES
+DFG_FLOWS_TO
+CALLS
+RETURNS_TO
+IMPORTS
+EXPORTS
+HAS_PARAM
+HAS_TYPE
+GUARDED_BY
+SANITIZED_BY
+ROUTE_TO
+```
+
+其中 `GUARDED_BY`、`SANITIZED_BY`、`ROUTE_TO` 是白盒安全扫描特别需要的语义边。它们不一定来自编译器，很多时候来自框架 adapter 或 Agent 提出的项目语义候选，再由确定性查询确认。
+
+节点必须保存：
+
+- `stable_id`：由 commit、file path、node kind、range、symbol 生成。
+- `file_path`、`start_line`、`end_line`。
+- `code_hash`：用于判断节点是否变化。
+- `symbol`：函数名、方法名、变量名或调用目标。
+- `raw_snippet_hash`：报告可以引用短片段，但数据库里不一定存完整代码。
+
+边必须保存：
+
+- `from_node_id`、`to_node_id`。
+- `edge_kind`。
+- `confidence`：确定性边为 1.0，Agent/启发式候选低于 1.0。
+- `provenance`：来自 parser、compiler、framework adapter、agent proposal 还是人工规则。
+
+这样后面才能做增量扫描。否则每次扫描都全量重建，成本会很快失控。
+
+## Agent 工具协议
+
+Agent 不能自由读写所有东西。它应该只能通过工具访问经过裁剪的证据。
+
+```ts
+interface AgentTools {
+  getFinding(id: string): Finding;
+  getPathEvidence(findingId: string): EvidenceStep[];
+  getNodeContext(nodeId: string, radius: number): CodeContext;
+  searchSymbols(query: string): SymbolHit[];
+  runGraphQuery(query: GraphQuery): QueryResult;
+  proposeRulePatch(ruleId: string, patch: RulePatch): ProposalId;
+  createValidationPlan(findingId: string, plan: ValidationPlan): ProposalId;
+  writeFindingNote(findingId: string, note: FindingNote): void;
+}
+```
+
+这里有两个原则：
+
+第一，Agent 输出的是 proposal，不是最终事实。`proposeRulePatch`、`createValidationPlan` 都要进入审计队列或自动验证流程。
+
+第二，Agent 的每条 note 都要引用证据节点。没有 node id、edge id、query result 的自然语言解释，不能进入最终报告。
+
+## 验证沙箱设计
+
+验证沙箱不必第一版就做到很重，但边界要从一开始设计好。
+
+最小沙箱能力：
+
+- 用 Docker Compose 启动项目依赖。
+- 注入测试数据库，而不连接生产数据库。
+- 禁止访问外部网络，除非规则显式允许。
+- 对 HTTP 服务生成本地请求。
+- 捕获请求、响应、日志、异常栈和数据库变化。
+- 每次验证生成 artifact：命令、环境、payload、输出、退出码。
+
+验证策略分三档：
+
+- **静态强证据**：source-to-sink 路径完整，sink 明确危险，但无法安全运行项目。
+- **动态弱验证**：服务可启动，请求可到达 sink，但没有证明危险副作用。
+- **动态强验证**：payload 触发可观察差异，例如 SQL error、命令执行回显、任意文件读取、越权数据返回。
+
+对于命令注入、SSRF、路径穿越这类风险，payload 必须是安全 payload。比如命令注入验证只允许 `echo scanner_probe_<nonce>` 这种无害命令；SSRF 只打本地受控 mock server；路径穿越只读取沙箱内临时 canary 文件。
+
+## CI 和 PR 集成
+
+CI 里不能每次全量深扫，否则开发者会关掉它。推荐三层策略：
+
+| 触发 | 扫描范围 | 时间预算 | 阻断策略 |
+|---|---|---:|---|
+| PR push | diff 影响文件 + 调用邻域 | 2-5 分钟 | 只阻断新增 high/confimed |
+| main merge | 全仓规则扫描 | 10-30 分钟 | 记录趋势，不轻易阻断 |
+| nightly | 深度 taint + Agent review + sandbox | 30-120 分钟 | 输出安全日报 |
+
+PR 模式最重要的是“新增风险”。如果历史上已有 200 个 candidate，不能每次 PR 都拿它们吓人。扫描器应该比较 baseline：
+
+```text
+new_findings = current_findings - baseline_findings
+fixed_findings = baseline_findings - current_findings
+changed_findings = same_sink_but_path_changed
+```
+
+这也是为什么 finding 必须有稳定 fingerprint。一个 fingerprint 可以由 `rule_id + source_node_stable_id + sink_node_stable_id + normalized_path_shape` 组成。
+
+## 风险评分模型
+
+第一版评分不要用黑盒模型，先用透明规则：
+
+```text
+score =
+  source_confidence * 0.2 +
+  sink_severity * 0.25 +
+  path_completeness * 0.2 +
+  sanitizer_absence * 0.15 +
+  external_reachability * 0.1 +
+  validation_strength * 0.1
+```
+
+然后映射为：
+
+- `critical`：外部可达 + 高危 sink + 动态强验证。
+- `high`：外部可达 + 完整路径 + 无 sanitizer。
+- `medium`：路径成立但入口或 exploitability 不完整。
+- `low`：危险模式存在，但缺少可控输入或可达性。
+- `info`：需要人工确认的安全气味。
+
+Agent 可以影响 `external_reachability` 和 `sanitizer_absence` 的解释，但不能直接把 severity 提到 critical。critical 必须来自规则和验证证据。
 
 ## 数据模型：ER 图
 
@@ -434,6 +726,23 @@ Microsoft 近期公开的 MDASH 很值得关注，因为它强调的不是“一
 
 第五阶段做运营闭环。每次扫描产生 false-positive memory、规则改进建议和回归用例。真正的壁垒不是第一条规则，而是系统能不能从每次误报和漏报里变好。
 
+更具体的里程碑可以这样排：
+
+| 周期 | 目标 | 可交付物 |
+|---|---|---|
+| 第 1-2 周 | TypeScript 仓库索引和 AST 统一节点 | CLI、文件过滤、节点表、基础符号表 |
+| 第 3-4 周 | CPG 最小图和查询 API | AST/DFG/CALLS 边、节点上下文查询、路径查询 |
+| 第 5-6 周 | LFP 污点传播 | source/sink/sanitizer DSL、worklist solver、路径证据 |
+| 第 7-8 周 | 首批规则 | SQL 注入、命令注入、路径穿越、硬编码 secret |
+| 第 9-10 周 | Agent review | 项目语义挖掘、路径解释、误报复核 note |
+| 第 11-12 周 | 沙箱验证和报告 | Docker 验证、SARIF、Markdown、JSON API |
+
+第一版上线前必须拿三个仓库做验证：
+
+- 一个小型故意漏洞项目，用来确认规则能命中。
+- 一个真实开源 Node 项目，用来观察误报。
+- 一个内部或自建业务风格项目，用来验证框架语义挖掘是否有价值。
+
 ## 风险边界
 
 这个方向容易被做成“自动黑客工具”，所以边界必须写清楚：
@@ -461,14 +770,33 @@ Microsoft 近期公开的 MDASH 很值得关注，因为它强调的不是“一
 
 达到这一步，系统就已经不是普通“AI 看代码”，而是一个有证据链、有状态机、有记忆、有验证入口的白盒扫描器雏形。
 
+## MVP 验收清单
+
+最后我会用下面这张清单判断项目是否真的可用，而不是只完成了一篇漂亮设计文档。
+
+| 项目 | 验收标准 |
+|---|---|
+| 构建稳定性 | 同一 commit 连续扫描三次，finding fingerprint 一致 |
+| 图完整性 | 常见函数调用、参数传递、返回值、字段读写能形成路径 |
+| 规则可维护性 | 新增一个 source/sink 不需要改 solver 代码 |
+| 证据可读性 | 报告能展示 source、sink、中间传播步骤和文件行号 |
+| Agent 可控性 | Agent note 都引用节点或查询结果，没有纯主观结论 |
+| 误报处理 | suppress 必须有原因、作用域和过期策略 |
+| 验证安全 | PoC 在无外网、无生产凭据、资源限制下执行 |
+| CI 体验 | PR 扫描只报告新增风险，不翻旧账 |
+| 性能基线 | 10 万行 TypeScript 项目在 10 分钟内完成基础扫描 |
+| 安全边界 | 未授权目标、真实攻击 payload、生产凭据访问默认禁止 |
+
+这个验收清单比“支持多少漏洞类型”更重要。漏洞类型可以慢慢扩展；如果证据链、稳定性和边界一开始没做好，后面加越多规则，系统越难运营。
+
 ## 自审
 
 事实可靠性：CPG、CodeQL、Semgrep、Tree-sitter、抽象解释和 MDASH 均来自论文或官方资料。本文没有声称已复现 MDASH 或任何论文结果。
 
-原创性：主体是自建白盒扫描器的工程方案，包含架构、ER 图、状态机、规则模型、Agent 分工、实施路线和风险边界，不是资料拼贴。
+原创性：主体是自建白盒扫描器的工程方案，包含架构、ER 图、状态机、规则模型、DSL、模块契约、Agent 分工、沙箱验证、CI 集成、实施路线和验收清单，不是资料拼贴。
 
 标题与内容：标题中的 Agent、CPG、LFP 均在正文中展开，并落到白盒扫描器构建方案。
 
-薄内容检查：文章给出了数据模型、状态机、模块拆解、规则示例、选型和落地路径，能指导第一版实现。
+薄内容检查：文章给出了数据模型、状态机、模块拆解、规则示例、选型、产品形态、模块接口、评分模型、落地路径和 MVP 验收标准，能指导第一版实现。
 
 安全边界：文章定位为授权白盒扫描和防御建设，没有提供针对第三方目标的攻击流程。
