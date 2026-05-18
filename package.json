@@ -8,7 +8,7 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "deploy:prod": "npx --yes vercel@latest deploy --prod --yes"
+    "deploy:prod": "vercel deploy --prod --yes"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
@@ -17,5 +17,8 @@
     "@vercel/analytics": "^2.0.1",
     "astro": "^5.15.5",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "vercel": "^54.1.0"
   }
 }
