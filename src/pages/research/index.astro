@@ -1,0 +1,43 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE, TRACKS } from '../../site';
+import { getPublishedPosts, trackUrl } from '../../utils';
+
+const posts = await getPublishedPosts();
+const tracks = Object.values(TRACKS).map((track) => {
+  const trackPosts = posts.filter((post) => post.data.track === track.id);
+  return {
+    ...track,
+    count: trackPosts.length,
+    latest: trackPosts.slice(0, 4),
+  };
+});
+---
+
+<BaseLayout
+  title={`研究方向 | ${SITE.name}`}
+  description="Memory Systems Notes 的两个长期研究方向：AI 记忆系统与网络安全工程。"
+>
+  <section class="page-hero">
+    <p class="eyebrow">Research Tracks</p>
+    <h1>两个长期分支，而不是零散追热点。</h1>
+    <p>
+      Agent Memory 继续做论文、源码和工程架构研究；网络安全分支聚焦白盒扫描、静态分析、代码图、漏洞验证和安全自动化。
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="track-grid track-grid--wide">
+      {
+        tracks.map((track) => (
+          <a class="track-card" href={trackUrl(track.id)}>
+            <span>{track.label}</span>
+            <h2>{track.title}</h2>
+            <p>{track.description}</p>
+            <small>{track.count} 篇文章</small>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

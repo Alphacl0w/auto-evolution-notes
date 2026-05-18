@@ -76,6 +76,7 @@ main {
 .section,
 .band,
 .page-head,
+.page-hero,
 .post-list,
 .content-panel,
 .article {
@@ -178,6 +179,7 @@ main {
 
 .hero__copy h1,
 .page-head h1,
+.page-hero h1,
 .article__header h1 {
   max-width: 960px;
   margin: 0;
@@ -188,6 +190,7 @@ main {
 
 .hero__copy p,
 .page-head p,
+.page-hero p,
 .article__header p {
   max-width: 710px;
   color: var(--muted-dark);
@@ -196,11 +199,13 @@ main {
 }
 
 .page-head h1,
+.page-hero h1,
 .article__header h1 {
   color: var(--paper);
 }
 
 .page-head p,
+.page-hero p,
 .article__header p {
   color: #d7ded8;
 }
@@ -385,6 +390,61 @@ main {
   gap: 20px;
 }
 
+.track-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.track-grid--wide {
+  align-items: stretch;
+}
+
+.track-card {
+  display: flex;
+  min-height: 250px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(24px, 4vw, 38px);
+  border: 1px solid rgba(11, 18, 15, 0.1);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(82, 115, 109, 0.14), transparent 46%),
+    var(--panel);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 22px 62px rgba(32, 38, 30, 0.11);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.track-card:hover {
+  border-color: rgba(11, 18, 15, 0.25);
+  color: var(--ink);
+  box-shadow: 0 30px 84px rgba(32, 38, 30, 0.16);
+  transform: translateY(-4px);
+}
+
+.track-card span,
+.track-card small {
+  color: var(--muted);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+}
+
+.track-card h2,
+.track-card h3 {
+  margin: 18px 0 14px;
+  color: var(--ink);
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.05;
+}
+
+.track-card p {
+  max-width: 620px;
+  color: var(--muted);
+  line-height: 1.85;
+}
+
 .post-list {
   display: grid;
   gap: 20px;
@@ -567,12 +627,14 @@ main {
   font-weight: 900;
 }
 
-.page-head {
+.page-head,
+.page-hero {
   padding: 76px 0 54px;
   color: var(--paper);
 }
 
-.page-head h1 {
+.page-head h1,
+.page-hero h1 {
   font-size: clamp(54px, 10vw, 122px);
 }
 
@@ -765,7 +827,8 @@ main {
     font-size: 12px;
   }
 
-  .post-grid {
+  .post-grid,
+  .track-grid {
     grid-template-columns: 1fr;
   }
 

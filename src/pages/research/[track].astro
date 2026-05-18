@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostCard from '../../components/PostCard.astro';
+import { SITE, TRACKS, type TrackId } from '../../site';
+import { getPublishedPosts } from '../../utils';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return Object.values(TRACKS).map((track) => ({
+    params: { track: track.id },
+    props: {
+      track,
+      posts: posts.filter((post) => post.data.track === track.id),
+    },
+  }));
+}
+
+const { track, posts } = Astro.props as {
+  track: (typeof TRACKS)[TrackId];
+  posts: Awaited<ReturnType<typeof getPublishedPosts>>;
+};
+---
+
+<BaseLayout title={`${track.title} | ${SITE.name}`} description={track.description}>
+  <section class="page-hero">
+    <p class="eyebrow">{track.label}</p>
+    <h1>{track.title}</h1>
+    <p>{track.description}</p>
+  </section>
+
+  <section class="section">
+    {
+      posts.length > 0 ? (
+        <div class="post-grid">
+          {posts.map((post) => <PostCard post={post} />)}
+        </div>
+      ) : (
+        <div class="empty-state">
+          <h2>这个方向的文章还在整理。</h2>
+          <p>后续只发布有来源、有推理、有验证价值的技术内容。</p>
+        </div>
+      )
+    }
+  </section>
+</BaseLayout>

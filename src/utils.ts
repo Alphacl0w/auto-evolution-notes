@@ -1,5 +1,6 @@
 import { getCollection } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
+import { TRACKS, type TrackId } from './site';
 
 export type Post = CollectionEntry<'posts'>;
 
@@ -35,6 +36,14 @@ export function archiveLabel(date: Date) {
 
 export function termUrl(base: 'categories' | 'tags', term: string) {
   return `/${base}/${encodeURIComponent(term)}/`;
+}
+
+export function trackUrl(track: TrackId) {
+  return `/research/${track}/`;
+}
+
+export function getTrack(track: TrackId) {
+  return TRACKS[track];
 }
 
 export function collectTerms(posts: Post[], selector: (post: Post) => string | string[]) {

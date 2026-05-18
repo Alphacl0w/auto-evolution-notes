@@ -2,7 +2,7 @@
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { SITE } from '../../site';
-import { formatDate, getPublishedPosts, postUrl, termUrl } from '../../utils';
+import { formatDate, getPublishedPosts, getTrack, postUrl, termUrl, trackUrl } from '../../utils';
 
 export async function getStaticPaths() {
   const posts = await getPublishedPosts();
@@ -15,6 +15,7 @@ export async function getStaticPaths() {
 const { post } = Astro.props;
 const { Content } = await render(post);
 const canonical = new URL(postUrl(post), SITE.url).toString();
+const track = getTrack(post.data.track);
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'BlogPosting',
@@ -51,6 +52,7 @@ const jsonLd = {
       <p>{post.data.description}</p>
       <div class="article__meta">
         <time datetime={post.data.pubDate.toISOString()}>{formatDate(post.data.pubDate)}</time>
+        <a href={trackUrl(post.data.track)}>{track.title}</a>
         <a href={termUrl('categories', post.data.category)}>{post.data.category}</a>
       </div>
       <div class="tag-row">

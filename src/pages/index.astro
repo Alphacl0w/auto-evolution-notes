@@ -1,11 +1,13 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
-import { SITE } from '../site';
+import { SITE, TRACKS } from '../site';
 import { getPublishedPosts } from '../utils';
 
 const posts = await getPublishedPosts();
 const latest = posts.slice(0, 3);
+const agentMemoryPosts = posts.filter((post) => post.data.track === 'agent-memory').slice(0, 3);
+const securityPosts = posts.filter((post) => post.data.track === 'security').slice(0, 3);
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -24,14 +26,14 @@ const jsonLd = {
 <BaseLayout title={SITE.name} description={SITE.description} jsonLd={jsonLd}>
   <section class="hero">
     <div class="hero__copy">
-      <p class="eyebrow">AI Memory Research Notes</p>
-      <h1>系统研究 AI 记忆：论文、源码、架构和可复现实验。</h1>
+      <p class="eyebrow">Research Notes</p>
+      <h1>长期研究 AI 记忆系统，也写网络安全工程。</h1>
       <p>
-        这里不追热点口号，只拆解能落到工程里的记忆机制：长期记忆、RAG、向量检索、上下文压缩、遗忘策略、个人化记忆和评测方法。
+        这里不追热点口号，只拆解能落到工程里的技术问题：一条主线研究 Agent Memory，另一条主线研究白盒扫描、代码图、静态分析和安全自动化。
       </p>
       <div class="hero__actions">
         <a class="button" href="/articles/">进入文章库</a>
-        <a class="button button--ghost" href="/about/">研究边界</a>
+        <a class="button button--ghost" href="/research/">研究方向</a>
       </div>
     </div>
     <div class="hero__visual" aria-label="AI 记忆系统研究示意">
@@ -45,6 +47,28 @@ const jsonLd = {
         <code>retrieval: relevance + freshness</code>
         <code>forgetting: decay + conflict checks</code>
       </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section__heading">
+      <p class="eyebrow">Research Tracks</p>
+      <h2>两个长期分支</h2>
+      <a href="/research/">查看方向</a>
+    </div>
+    <div class="track-grid">
+      <a class="track-card" href="/research/agent-memory/">
+        <span>{TRACKS['agent-memory'].label}</span>
+        <h3>{TRACKS['agent-memory'].title}</h3>
+        <p>{TRACKS['agent-memory'].description}</p>
+        <small>{agentMemoryPosts.length} 篇近期文章</small>
+      </a>
+      <a class="track-card" href="/research/security/">
+        <span>{TRACKS.security.label}</span>
+        <h3>{TRACKS.security.title}</h3>
+        <p>{TRACKS.security.description}</p>
+        <small>{securityPosts.length} 篇近期文章</small>
+      </a>
     </div>
   </section>
 
@@ -92,6 +116,10 @@ const jsonLd = {
       <span>Retrieval evaluation</span>
       <span>Forgetting and conflict</span>
       <span>Personalization memory</span>
+      <span>Code Property Graph</span>
+      <span>White-box scanning</span>
+      <span>Static analysis</span>
+      <span>Agent security</span>
     </div>
   </section>
 </BaseLayout>

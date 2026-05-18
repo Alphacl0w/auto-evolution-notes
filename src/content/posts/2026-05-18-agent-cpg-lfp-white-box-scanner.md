@@ -2,7 +2,8 @@
 title: "Agent + CPG + LFP：怎样构建一个可验证的白盒扫描器"
 description: "本文把 Agent、Code Property Graph、最小不动点数据流分析、规则引擎和验证沙箱合成一个白盒扫描器方案：不是让大模型直接猜漏洞，而是让它围绕代码图、状态机、证据链和 PoC 验证来工作。"
 pubDate: 2026-05-18
-category: "工程方案"
+track: "security"
+category: "网络安全"
 tags:
   - "white-box scanner"
   - "CPG"
