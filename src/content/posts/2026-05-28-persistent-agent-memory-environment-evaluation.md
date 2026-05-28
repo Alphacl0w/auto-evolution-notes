@@ -21,13 +21,15 @@ draft: false
 
 这篇论文值得处理，是因为它把长期记忆系统的评估单位从“模型回答”推进到“持久化环境”。作者报告 recoverable main-agent telemetry 包含 96 个活跃日内 75,671 条去重记录、8,059 条 user-role messages、23,710 条 assistant-role messages、502 个 memory-related files、17 个 configured agent directories、57 个 skill files、579.7 小时 active system time，以及 482 个 output-proxy events 和 889 个 failure、verification、correction 或 protocol-proxy events。严格 May 2026 trajectory subset 中，作者还报告 627 个 model-completed events 和 73.95M recorded tokens，其中 82.9% 是 cache reads。
 
-为避免只复述单篇摘要，本文同时使用三个近期对照来源：QUEST 展示了 deep research agent 如何把长轨迹压缩为结构化 context state；AgentSecBench 强调 agent 中 retrieved records、tool observations 和 trusted instructions 共享生成通道时，必须用 provenance projection、capability restriction 和 output validation 才能强制边界；LangGraph 官方文档则给出短期 thread persistence 与长期 user/application store 的工程分层。这些来源共同指向一个判断：如果 Agent 真正长期运行，memory evaluation 不能只看“记住了什么”，还要看它在什么环境里产生、被谁修改、怎样影响产出、怎样暴露失败。
+为避免只复述单篇摘要，本文同时使用五个近期对照来源：Microsoft STATE-Bench 把 memory 放进有数据库状态、工具调用、用户模拟器和确定性断言的企业任务循环中评估；`Is Agent Memory a Database?` 把长期记忆定义为 state trajectory correctness，而不是 record-level correctness；QUEST 展示 deep research agent 如何把长轨迹压缩为结构化 context state；AgentSecBench 强调 agent 中 retrieved records、tool observations 和 trusted instructions 共享生成通道时，必须用 provenance projection、capability restriction 和 output validation 才能强制边界；LangGraph 官方文档则给出短期 thread persistence 与长期 user/application store 的工程分层。这些来源共同指向一个判断：如果 Agent 真正长期运行，memory evaluation 不能只看“记住了什么”，还要看它在什么环境里产生、被谁修改、怎样影响产出、怎样暴露失败。
 
 稳定 slug：`2026-05-28-persistent-agent-memory-environment-evaluation`。
 
 参考来源：
 
 - arXiv: [Persistent AI Agents in Academic Research: A Single-Investigator Implementation Case Study](https://arxiv.org/abs/2605.26870)
+- Microsoft Open Source Blog: [Introducing STATE-Bench: A benchmark for AI agent memory](https://opensource.microsoft.com/blog/2026/05/19/introducing-state-bench-a-benchmark-for-ai-agent-memory/)
+- arXiv: [Is Agent Memory a Database? Rethinking Data Foundations for Long-Term AI Agent Memory](https://arxiv.org/abs/2605.26252)
 - arXiv: [AgentSecBench: Measuring Prompt Injection, Privacy Leakage, and Tool-Use Integrity in LLM Agents](https://arxiv.org/abs/2605.26269)
 - Project page: [QUEST: Training Frontier Deep Research Agents with Fully Synthetic Tasks](https://osu-nlp-group.github.io/QUEST/)
 - LangChain Docs: [LangGraph Memory](https://docs.langchain.com/oss/python/langgraph/add-memory)
@@ -39,6 +41,8 @@ draft: false
 `Persistent AI Agents in Academic Research` 的价值在这里。它没有声称自己给出通用 benchmark，也没有把单个研究者的环境包装成行业结论。相反，它把一个长期运行的 agentic research environment 当成单位，提出 PARE-M，也就是 Persistent Agentic Research Environment Measurement。这个框架覆盖 architecture、utilization、artifact production、resource use、reproducibility 和 governance。对 AI memory 来说，这比又一个 recall@k 排名更有启发。
 
 我的判断是，下一阶段的 memory evaluation 会从“这条记忆能不能被检索到”转向“这条记忆在长期环境中造成了什么后果”。它可能减少重复解释，也可能制造陈旧上下文；可能提升 artifact 产出，也可能隐藏失败；可能降低显式 token 成本，也可能把成本转移到缓存、文件、验证、人工纠正和治理事件上。
+
+Microsoft STATE-Bench 已经把这个方向往 benchmark 里推进了一步：它不问 memory 能不能从旧聊天里找回姓名，而是问有记忆的 Agent 在 customer support、travel 和 shopping 三类状态化企业任务中，是否更可靠、更高效、更会和用户沟通。`Is Agent Memory a Database?` 则从数据管理角度提出更激进的说法：长期 Agent memory 的正确性不是单条记录、embedding 或 graph edge 的正确性，而是整个状态演化轨迹的正确性。
 
 如果系统不能把这些后果记账，长期记忆就只是一种产品叙事，而不是可管理的工程能力。
 
@@ -70,6 +74,16 @@ draft: false
 
 把这些合起来看，memory store 就不再是孤立数据库，而是环境账本中的一个状态源。
 
+## 和 STATE-Bench、GEM、QUEST 的关系
+
+STATE-Bench 是本文最直接的评估对照。Microsoft 在 2026-05-19 发布这个 open-source benchmark，目标是测量 memory 是否让 Agent 在生产型任务中真的变好。它覆盖 customer support、travel、shopping 三个域，共 450 个任务。每个任务都有预填充数据库、用户问题、工具、用户模拟器和确定性 state assertions。Agent 在多轮循环中调用工具、改变环境状态，直到任务完成或达到回合限制。
+
+这个设计和传统 memory QA 的差别很大。STATE-Bench 的指标包括 task completion rate、pass^5 reliability、agent efficiency 和 user experience score。换句话说，它关心的不只是“记忆有没有被召回”，而是同一任务跑五次是否都成功、是否少走弯路、是否少做无用工具调用、是否在行动前征得用户确认。Microsoft 报告 GPT-5.1 no-memory baseline 即便有强提示和完整工具访问，可靠完成率仍不到一半，travel 域 pass^5 约 30%。这类结果把 memory 的目标重新定义为降低长期任务不一致性。
+
+`Is Agent Memory a Database?` 给出另一个理论支点。作者认为当前 memory systems 和 database paradigms 都倾向把 memory 当 storage，并把正确性局部化到 records、embeddings 或 edges。但长期 Agent memory 会出现四类反复失败：unregulated growth、missing semantic revision、capacity-driven forgetting 和 read-only retrieval。论文提出 Governed Evolving Memory，也就是 GEM，把长期记忆看成由 ingestion、revision、forgetting 和 retrieval 四类 state-level operators 驱动的演化状态，而不是 CRUD 记录集合。
+
+这和 PARE-M 的方向相互补强。PARE-M 从真实持久化环境出发，问我们该记录哪些架构、使用、产出、资源、复现和治理事件；GEM 从数据管理出发，问 memory state 应该怎样演化才算正确；STATE-Bench 从 benchmark 出发，问 memory 是否真的改善状态化任务的完成率、可靠性、成本和用户体验。三者都在把 memory evaluation 从 record-level 拉到 system-level。
+
 ## 和 QUEST、AgentSecBench、LangGraph 的关系
 
 QUEST 的项目页给出一个与本文高度相关的机制：deep research 需要大量 search 和 visit steps，所以不能无限保留 raw observation。当上下文变长时，condenser 会把交互历史压缩成结构化 context state，区分 trusted facts、uncertain leads 和 untrusted claims。模型在训练中也学习处理这些中间产物，而不是只学习最终答案格式。
@@ -82,7 +96,7 @@ AgentSecBench 从安全角度补上另一块。它指出 LLM agents 会把 trust
 
 LangGraph 官方 memory 文档则展示了工程分层：short-term memory 是 thread-level persistence，用于多轮对话；long-term memory 存 user-specific 或 application-specific data，生产环境应使用数据库支持的 checkpointer 和 store。这个分层很重要，但它只解决一部分问题。持久化 Agent 还需要知道哪类状态进入哪个 store、如何删除、如何跨 agent 共享、如何记录写入理由、如何把失败和纠正事件纳入评估。
 
-三者合在一起形成一条完整链路：QUEST 处理长轨迹压缩，LangGraph 提供状态持久化机制，AgentSecBench 提醒权限和来源边界，PARE-M 则把这些机制放进环境级评估账本。
+这些材料合在一起形成一条完整链路：QUEST 处理长轨迹压缩，LangGraph 提供状态持久化机制，AgentSecBench 提醒权限和来源边界，STATE-Bench 检查 memory 对状态化任务的净效果，GEM 提供状态演化正确性的概念框架，PARE-M 则把这些机制放进真实环境级评估账本。
 
 ## 工程设计：从 memory metrics 到 environment metrics
 
@@ -101,6 +115,10 @@ LangGraph 官方 memory 文档则展示了工程分层：short-term memory 是 t
 第五类是 cache economics。持久化 Agent 的成本会大量转入缓存、文件和上下文恢复。只看 prompt tokens 会低估实际资源使用；只看 cache hit rate 又会高估价值。更合理的指标是 cache read 是否减少重复工作，是否提高 artifact throughput，是否引入 stale context。
 
 第六类是 cross-role consistency。多 agent 环境里，子 agent、计划任务和主 agent 可能读写不同记忆。系统需要衡量同一事实在不同 role、目录和任务上下文里的冲突率。
+
+第七类是 state-trajectory correctness。借用 GEM 的视角，长期记忆不是一次写入正确就结束。系统需要检查 ingestion、revision、forgetting 和 retrieval 共同形成的状态演化是否满足预期：新事实是否能修订旧事实，容量压力是否导致错误遗忘，过期记录是否仍被读取，读取行为是否改变后续状态。
+
+第八类是 repeated-run reliability。STATE-Bench 的 pass^5 很适合引入生产记忆评估：一个 Agent 偶尔成功不够，关键是相同任务、相似用户和相同工具环境下是否稳定成功。记忆如果只提升平均表现，却增加方差，对企业流程未必是好事。
 
 这些指标的共同目标不是证明“记忆越多越好”，而是证明“记忆对长期产出和可控性有净贡献”。
 
@@ -145,9 +163,12 @@ LangGraph 官方 memory 文档则展示了工程分层：short-term memory 是 t
 5. Stale context incidence：被召回的记忆中，有多少已经被后续证据、文件变更或用户更新否定。
 6. Cross-role conflict rate：不同 agent role 对同一实体、任务状态或项目规则的记忆冲突比例。
 7. Context compression auditability：压缩状态中的每条 trusted fact、uncertain lead 和 untrusted claim 是否能回到原始 observation。
-8. Human correction half-life：某类错误在第一次被纠正后，重复出现频率下降到一半所需时间。
-9. Artifact acceptance rate：由 Agent 生成并进入最终使用的产物比例，而不只是生成数量。
-10. Recovery time after memory fault：发现错误记忆影响产出后，定位、作废、回滚和重新生成所需时间。
+8. Pass-n reliability with memory：同一状态化任务重复运行 n 次时，有记忆系统是否比 no-memory baseline 更稳定。
+9. State mutation correctness：工具调用后数据库、文件或业务对象的最终状态是否满足确定性断言。
+10. Semantic revision success：用户更新、政策变更或新证据出现后，旧记忆是否被正确修订而不是并存冲突。
+11. Human correction half-life：某类错误在第一次被纠正后，重复出现频率下降到一半所需时间。
+12. Artifact acceptance rate：由 Agent 生成并进入最终使用的产物比例，而不只是生成数量。
+13. Recovery time after memory fault：发现错误记忆影响产出后，定位、作废、回滚和重新生成所需时间。
 
 这些指标把 memory 从“检索组件”提升为“长期工作系统的可审计状态”。
 
@@ -161,7 +182,7 @@ LangGraph 官方 memory 文档则展示了工程分层：short-term memory 是 t
 
 第四，cache-dominant workflow 的经济解释需要谨慎。82.9% cache reads 说明持久化环境中缓存占比很高，但不自动证明缓存提升质量，也不自动说明成本下降。
 
-第五，QUEST、AgentSecBench 和 LangGraph 在本文中是机制对照，不是对 PARE-M 的验证。它们分别说明 context management、security enforcement 和 persistence 分层的重要性，但不能替代对真实长期环境的独立评估。
+第五，STATE-Bench、GEM、QUEST、AgentSecBench 和 LangGraph 在本文中是机制对照，不是对 PARE-M 的验证。它们分别说明 task-level memory evaluation、state trajectory correctness、context management、security enforcement 和 persistence 分层的重要性，但不能替代对真实长期环境的独立评估。
 
 第六，环境级评估本身有成本。过度记录会增加存储、隐私和审计负担；记录不足又无法归因。工程上需要根据风险等级分层采样，而不是把所有事件永久热存储。
 
@@ -185,7 +206,7 @@ LangGraph 官方 memory 文档则展示了工程分层：short-term memory 是 t
 
 ## 自审
 
-事实可靠性：主源的提交日期、研究区间、PARE-M 覆盖维度、telemetry 数量、memory-related files、configured agent directories、skill files、active system time、output-proxy events、failure/verification/correction/protocol-proxy events、May 2026 token 子集和 cache-read 比例均来自 arXiv 摘要页面。AgentSecBench 的三类 games、Qwen3-0.6B/Qwen3-1.7B 实验、ancillary files 和 enforcement 判断来自 arXiv 页面。QUEST 的 context condenser、trusted facts、uncertain leads、untrusted claims、rubric-tree training 和开放资源来自项目页。LangGraph 的 short-term memory、long-term memory、production checkpointer/store 来自官方文档。
+事实可靠性：主源的提交日期、研究区间、PARE-M 覆盖维度、telemetry 数量、memory-related files、configured agent directories、skill files、active system time、output-proxy events、failure/verification/correction/protocol-proxy events、May 2026 token 子集和 cache-read 比例均来自 arXiv 摘要页面。STATE-Bench 的发布时间、450 个任务、三个领域、stateful environment、确定性断言、四类指标、pass^5 和 no-memory baseline caveat 来自 Microsoft Open Source Blog。GEM 的四类失败、四个 state-level operators 和 state trajectory correctness 来自 arXiv 页面。AgentSecBench 的三类 games、Qwen3-0.6B/Qwen3-1.7B 实验、ancillary files 和 enforcement 判断来自 arXiv 页面。QUEST 的 context condenser、trusted facts、uncertain leads、untrusted claims、rubric-tree training 和开放资源来自项目页。LangGraph 的 short-term memory、long-term memory、production checkpointer/store 来自官方文档。
 
 来源完整性：文章列出 arXiv、项目页和官方文档；没有使用社区讨论作为核心事实来源。
 
