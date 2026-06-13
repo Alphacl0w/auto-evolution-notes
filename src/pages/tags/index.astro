@@ -6,7 +6,7 @@ const posts = await getPublishedPosts();
 const tags = collectTerms(posts, (post) => post.data.tags);
 ---
 
-<BaseLayout title="标签" description="AI 记忆系统研究文章标签索引。">
+<BaseLayout title="标签" description="AI 记忆系统研究文章标签索引。" robots="noindex,follow">
   <section class="page-head">
     <p class="eyebrow">Tags</p>
     <h1>标签</h1>

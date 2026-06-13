@@ -9,12 +9,13 @@ interface Props {
   title?: string;
   description?: string;
   type?: 'website' | 'article';
+  robots?: string;
   publishedTime?: Date;
   modifiedTime?: Date;
   jsonLd?: Record<string, unknown>;
 }
 
-const { title, description, type, publishedTime, modifiedTime, jsonLd } = Astro.props;
+const { title, description, type, robots, publishedTime, modifiedTime, jsonLd } = Astro.props;
 ---
 
 <!doctype html>
@@ -24,6 +25,7 @@ const { title, description, type, publishedTime, modifiedTime, jsonLd } = Astro.
       title={title}
       description={description}
       type={type}
+      robots={robots}
       publishedTime={publishedTime}
       modifiedTime={modifiedTime}
       jsonLd={jsonLd}

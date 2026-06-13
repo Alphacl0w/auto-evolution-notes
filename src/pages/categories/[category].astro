@@ -14,7 +14,7 @@ export async function getStaticPaths() {
 const { category, posts } = Astro.props;
 ---
 
-<BaseLayout title={`分类：${category}`} description={`${category} 分类下的文章。`}>
+<BaseLayout title={`分类：${category}`} description={`${category} 分类下的文章。`} robots="noindex,follow">
   <section class="page-head">
     <p class="eyebrow">Category</p>
     <h1>{category}</h1>

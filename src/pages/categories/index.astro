@@ -6,7 +6,7 @@ const posts = await getPublishedPosts();
 const categories = collectTerms(posts, (post) => post.data.category);
 ---
 
-<BaseLayout title="分类" description="AI 记忆系统研究文章分类。">
+<BaseLayout title="分类" description="AI 记忆系统研究文章分类。" robots="noindex,follow">
   <section class="page-head">
     <p class="eyebrow">Categories</p>
     <h1>分类</h1>
