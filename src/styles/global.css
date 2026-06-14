@@ -655,6 +655,26 @@ main {
   padding: 74px 0 110px;
 }
 
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 26px;
+  color: rgba(255, 255, 248, 0.68);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+}
+
+.breadcrumb a {
+  color: rgba(255, 255, 248, 0.9);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--signal);
+}
+
 .article__header {
   margin-bottom: 46px;
 }
@@ -715,6 +735,81 @@ main {
   border-radius: 6px;
   padding: 2px 6px;
   background: #e4ead7;
+}
+
+.article-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.article-nav a,
+.related-card {
+  border: 1px solid rgba(11, 18, 15, 0.1);
+  border-radius: 20px;
+  background: rgba(255, 255, 248, 0.86);
+  color: var(--ink);
+  padding: 20px;
+  text-decoration: none;
+  box-shadow: 0 16px 42px rgba(32, 38, 30, 0.09);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.article-nav a:hover,
+.related-card:hover {
+  border-color: rgba(11, 18, 15, 0.22);
+  box-shadow: 0 22px 58px rgba(32, 38, 30, 0.14);
+  transform: translateY(-3px);
+}
+
+.article-nav span,
+.related-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+}
+
+.article-nav strong,
+.related-card strong {
+  display: block;
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.related-posts {
+  margin-top: 58px;
+}
+
+.related-posts .section__heading {
+  margin-bottom: 20px;
+}
+
+.related-posts .section__heading h2 {
+  color: var(--paper);
+}
+
+.related-posts__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.related-card {
+  display: flex;
+  min-height: 250px;
+  flex-direction: column;
+}
+
+.related-card p {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .mermaid-diagram {

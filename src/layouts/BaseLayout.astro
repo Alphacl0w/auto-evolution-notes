@@ -12,7 +12,7 @@ interface Props {
   robots?: string;
   publishedTime?: Date;
   modifiedTime?: Date;
-  jsonLd?: Record<string, unknown>;
+  jsonLd?: unknown;
 }
 
 const { title, description, type, robots, publishedTime, modifiedTime, jsonLd } = Astro.props;

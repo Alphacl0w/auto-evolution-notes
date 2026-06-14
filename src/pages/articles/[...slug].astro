@@ -14,27 +14,92 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+const posts = await getPublishedPosts();
+const currentIndex = posts.findIndex((candidate) => candidate.slug === post.slug);
+const newerPost = currentIndex > 0 ? posts[currentIndex - 1] : undefined;
+const olderPost = currentIndex >= 0 && currentIndex < posts.length - 1 ? posts[currentIndex + 1] : undefined;
 const canonical = new URL(postUrl(post), SITE.url).toString();
 const track = getTrack(post.data.track);
+const relatedPosts = posts
+  .filter((candidate) => candidate.slug !== post.slug)
+  .map((candidate) => {
+    const sharedTags = candidate.data.tags.filter((tag) => post.data.tags.includes(tag)).length;
+    const score =
+      (candidate.data.track === post.data.track ? 3 : 0) +
+      (candidate.data.category === post.data.category ? 2 : 0) +
+      sharedTags;
+    return { post: candidate, score };
+  })
+  .filter(({ score }) => score > 0)
+  .sort((a, b) => b.score - a.score || b.post.data.pubDate.valueOf() - a.post.data.pubDate.valueOf())
+  .slice(0, 3)
+  .map(({ post }) => post);
+
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'BlogPosting',
-  headline: post.data.title,
-  description: post.data.description,
-  datePublished: post.data.pubDate.toISOString(),
-  dateModified: (post.data.updatedDate || post.data.pubDate).toISOString(),
-  author: {
-    '@type': 'Person',
-    name: SITE.author,
-  },
-  publisher: {
-    '@type': 'Organization',
-    name: SITE.name,
-  },
-  mainEntityOfPage: canonical,
-  inLanguage: SITE.locale,
-  keywords: post.data.tags.join(', '),
+  '@graph': [
+    {
+      '@type': 'BlogPosting',
+      '@id': `${canonical}#article`,
+      headline: post.data.title,
+      description: post.data.description,
+      datePublished: post.data.pubDate.toISOString(),
+      dateModified: (post.data.updatedDate || post.data.pubDate).toISOString(),
+      author: {
+        '@type': 'Person',
+        name: SITE.author,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: SITE.name,
+      },
+      mainEntityOfPage: canonical,
+      isPartOf: {
+        '@type': 'Blog',
+        name: SITE.name,
+        url: SITE.url,
+      },
+      articleSection: [track.title, post.data.category],
+      inLanguage: SITE.locale,
+      keywords: post.data.tags.join(', '),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      '@id': `${canonical}#breadcrumb`,
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: '首页',
+          item: SITE.url,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: '文章',
+          item: new URL('/articles/', SITE.url).toString(),
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: post.data.title,
+          item: canonical,
+        },
+      ],
+    },
+  ],
 };
+
+const navItems = [
+  {
+    label: '上一篇',
+    post: newerPost,
+  },
+  {
+    label: '下一篇',
+    post: olderPost,
+  },
+].filter((item): item is { label: string; post: NonNullable<typeof newerPost> } => Boolean(item.post));
 ---
 
 <BaseLayout
@@ -46,6 +111,13 @@ const jsonLd = {
   jsonLd={jsonLd}
 >
   <article class="article">
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href="/">首页</a>
+      <span>/</span>
+      <a href="/articles/">文章</a>
+      <span>/</span>
+      <span>{post.data.title}</span>
+    </nav>
     <header class="article__header">
       <p class="eyebrow">{post.data.category}</p>
       <h1>{post.data.title}</h1>
@@ -62,5 +134,36 @@ const jsonLd = {
     <div class="prose">
       <Content />
     </div>
+    {
+      navItems.length > 0 && (
+        <nav class="article-nav" aria-label="相邻文章">
+          {navItems.map((item) => (
+            <a href={postUrl(item.post)}>
+              <span>{item.label}</span>
+              <strong>{item.post.data.title}</strong>
+            </a>
+          ))}
+        </nav>
+      )
+    }
+    {
+      relatedPosts.length > 0 && (
+        <section class="related-posts" aria-labelledby="related-posts-title">
+          <div class="section__heading">
+            <p class="eyebrow">Related Notes</p>
+            <h2 id="related-posts-title">继续阅读</h2>
+          </div>
+          <div class="related-posts__grid">
+            {relatedPosts.map((related) => (
+              <a class="related-card" href={postUrl(related)}>
+                <span>{formatDate(related.data.pubDate)} · {getTrack(related.data.track).title}</span>
+                <strong>{related.data.title}</strong>
+                <p>{related.data.description}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      )
+    }
   </article>
 </BaseLayout>
