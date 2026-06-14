@@ -8,6 +8,7 @@ const posts = await getPublishedPosts();
 const latest = posts.slice(0, 3);
 const agentMemoryPosts = posts.filter((post) => post.data.track === 'agent-memory').slice(0, 3);
 const securityPosts = posts.filter((post) => post.data.track === 'security').slice(0, 3);
+const aiNativePracticePosts = posts.filter((post) => post.data.track === 'ai-native-practice').slice(0, 3);
 
 const jsonLd = {
   '@context': 'https://schema.org',
@@ -27,9 +28,9 @@ const jsonLd = {
   <section class="hero">
     <div class="hero__copy">
       <p class="eyebrow">Research Notes</p>
-      <h1>长期研究 AI 记忆系统，也写网络安全工程。</h1>
+      <h1>长期研究 AI 记忆系统、AI Native 实践与安全工程。</h1>
       <p>
-        这里不追热点口号，只拆解能落到工程里的技术问题：一条主线研究 Agent Memory，另一条主线研究白盒扫描、代码图、静态分析和安全自动化。
+        这里不追热点口号，只拆解能落到工程里的技术问题：Agent Memory、AI Native 工作流，以及白盒扫描、代码图、静态分析和安全自动化。
       </p>
       <div class="hero__actions">
         <a class="button" href="/articles/">进入文章库</a>
@@ -53,7 +54,7 @@ const jsonLd = {
   <section class="section">
     <div class="section__heading">
       <p class="eyebrow">Research Tracks</p>
-      <h2>两个长期分支</h2>
+      <h2>三个长期分支</h2>
       <a href="/research/">查看方向</a>
     </div>
     <div class="track-grid">
@@ -68,6 +69,12 @@ const jsonLd = {
         <h3>{TRACKS.security.title}</h3>
         <p>{TRACKS.security.description}</p>
         <small>{securityPosts.length} 篇近期文章</small>
+      </a>
+      <a class="track-card" href="/research/ai-native-practice/">
+        <span>{TRACKS['ai-native-practice'].label}</span>
+        <h3>{TRACKS['ai-native-practice'].title}</h3>
+        <p>{TRACKS['ai-native-practice'].description}</p>
+        <small>{aiNativePracticePosts.length} 篇近期文章</small>
       </a>
     </div>
   </section>
@@ -100,7 +107,7 @@ const jsonLd = {
     <ul class="rule-list">
       <li>论文文章必须说明问题背景、核心方法、实验结论和局限。</li>
       <li>开源项目分析必须读源码、看接口和运行路径，避免只复述 README。</li>
-      <li>优化建议必须写清适用场景、代价、失败模式和可验证指标。</li>
+      <li>实践方案必须写清适用场景、执行步骤、人工审核点、失败模式和可验证指标。</li>
     </ul>
   </section>
 
@@ -120,6 +127,9 @@ const jsonLd = {
       <span>White-box scanning</span>
       <span>Static analysis</span>
       <span>Agent security</span>
+      <span>AI Native workflow</span>
+      <span>Agentic automation</span>
+      <span>Human-in-the-loop review</span>
     </div>
   </section>
 </BaseLayout>

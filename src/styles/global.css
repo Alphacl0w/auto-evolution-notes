@@ -392,7 +392,7 @@ main {
 
 .track-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
 }
 
@@ -435,7 +435,7 @@ main {
 .track-card h3 {
   margin: 18px 0 14px;
   color: var(--ink);
-  font-size: clamp(28px, 4vw, 46px);
+  font-size: clamp(26px, 3vw, 42px);
   line-height: 1.05;
 }
 
