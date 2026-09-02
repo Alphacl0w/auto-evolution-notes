@@ -8,3 +8,14 @@
 - Distinctive angle: facts can be present and well cited while the current answer remains wrong because temporal validity was flattened during curation.
 - Local check: `node experiments/filesystem-memory-invalidation.mjs` on Node v24.14.0; 32 slots, 200 filesystem reorderings, 6,400 queries. First-match current accuracy 50.38%; valid-time current and historical accuracy 100%; zero active-slot and source-preservation violations.
 - Boundary: the local script isolates a storage invariant and is not a reproduction of the paper's LLM experiments. The paper v1 does not link a public replication repository.
+
+## 2026-09-02 - Multi-agent shared-state concurrency
+
+- Track: `agent-memory`
+- Decision: publish a focused concurrency article; distinguish it from the 2026-08-21 shared-memory governance article, which covers authorization and deletion rather than concurrent mutation.
+- Primary evidence read: CoAgent arXiv:2606.15376v1 (2026-06-13), especially system assumptions, MTPO rules, framework, evaluation setup and limitations; RFC 9110 conditional requests; GitHub Contents API; Google Docs WriteControl; Notion Markdown update API.
+- Independent engineering signal: inkeep/open-knowledge issue #1094, opened 2026-08-07 and still open when checked 2026-09-02. Treat the reproduced API behavior as issue-author evidence and retain their explicit uncertainty about the internal cause.
+- Source availability: no public CoAgent implementation repository was linked from the paper or found on the authors' public pages as of 2026-09-02; do not present it as installable software or claim source-code verification.
+- Local check: `node experiments/multi-agent-shared-state-concurrency.mjs` on Node v24.14.0. Exhausted all 20 order-preserving interleavings of two three-step agents. Naive execution produced 8/20 serializable outcomes; full OCC-style replay produced 20/20 with 48 extra operations; exact-premise targeted repair produced 20/20 with 12 extra operations.
+- Boundary: the simulator uses deterministic dependency knowledge and zero model calls. It demonstrates the work saved by local repair when dependency judgment is correct; it is not a CoAgent reproduction and does not validate LLM notification judgment.
+- Next question: test version witnesses plus targeted edits against a real Markdown service before making any product-specific recommendation.
